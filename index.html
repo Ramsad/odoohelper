@@ -397,13 +397,23 @@
                     </button>
                 </div>
 
-                <div>
+                <div style="margin-bottom: 16px;">
                     <label class="label" style="margin-bottom: 6px; color: var(--text-muted); font-size: 11px;">Table Name</label>
                     <div class="output-box" id="outputBox">
                         <span class="output-text" id="outputText">Table name will appear here</span>
                     </div>
                     <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" style="display: none;">
                         📋 Copy Table Name
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label class="label" style="margin-bottom: 6px; color: var(--text-muted); font-size: 11px;">SQL Query</label>
+                    <div class="output-box" id="sqlBox">
+                        <span class="output-text" id="sqlText">SQL query will appear here</span>
+                    </div>
+                    <button class="copy-btn" id="copySqlBtn" onclick="copySqlToClipboard()" style="display: none;">
+                        📋 Copy Query
                     </button>
                 </div>
 
@@ -420,10 +430,13 @@
         const urlInput = document.getElementById('urlInput');
         const idText = document.getElementById('idText');
         const outputText = document.getElementById('outputText');
+        const sqlText = document.getElementById('sqlText');
         const idBox = document.getElementById('idBox');
         const outputBox = document.getElementById('outputBox');
+        const sqlBox = document.getElementById('sqlBox');
         const copyBtn = document.getElementById('copyBtn');
         const copyIdBtn = document.getElementById('copyIdBtn');
+        const copySqlBtn = document.getElementById('copySqlBtn');
         const statusMessage = document.getElementById('statusMessage');
 
         // Ctrl+V paste support
@@ -464,6 +477,7 @@
                 outputBox.classList.remove('active');
                 copyBtn.style.display = 'none';
                 clearIdDisplay();
+                clearSqlDisplay();
                 return;
             }
 
@@ -479,6 +493,7 @@
                 if (!model) {
                     showStatus('Could not find model parameter in URL', 'error');
                     clearIdDisplay();
+                    clearSqlDisplay();
                     outputText.textContent = 'Result will appear here';
                     outputBox.classList.remove('active');
                     copyBtn.style.display = 'none';
@@ -500,14 +515,29 @@
                 outputBox.classList.add('active');
                 copyBtn.style.display = 'block';
 
+                // Generate SQL query if both ID and table name exist
+                if (id && tableName) {
+                    generateSqlQuery(tableName, id);
+                } else {
+                    clearSqlDisplay();
+                }
+
                 showStatus('Extracted and converted!', 'success');
             } catch (error) {
                 showStatus('Error parsing URL. Check the format.', 'error');
                 clearIdDisplay();
+                clearSqlDisplay();
                 outputText.textContent = 'Result will appear here';
                 outputBox.classList.remove('active');
                 copyBtn.style.display = 'none';
             }
+        }
+
+        function generateSqlQuery(tableName, id) {
+            const query = `SELECT * FROM ${tableName} WHERE id = ${id};`;
+            sqlText.textContent = query;
+            sqlBox.classList.add('active');
+            copySqlBtn.style.display = 'block';
         }
 
         async function copyToClipboard() {
@@ -566,15 +596,50 @@
             }
         }
 
+        async function copySqlToClipboard() {
+            const query = sqlText.textContent;
+            
+            if (query === 'SQL query will appear here') {
+                showStatus('No query to copy!', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(query);
+                
+                // Button feedback
+                const originalText = copySqlBtn.textContent;
+                copySqlBtn.textContent = '✅ Copied!';
+                copySqlBtn.classList.add('copied');
+                
+                showStatus('SQL query copied!', 'success');
+
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copySqlBtn.textContent = originalText;
+                    copySqlBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showStatus('Failed to copy. Please try again.', 'error');
+            }
+        }
+
         function clearIdDisplay() {
             idText.textContent = 'ID will appear here';
             idBox.classList.remove('active');
             copyIdBtn.style.display = 'none';
         }
 
+        function clearSqlDisplay() {
+            sqlText.textContent = 'SQL query will appear here';
+            sqlBox.classList.remove('active');
+            copySqlBtn.style.display = 'none';
+        }
+
         function clearUrlTab() {
             urlInput.value = '';
             clearIdDisplay();
+            clearSqlDisplay();
             outputText.textContent = 'Result will appear here';
             outputBox.classList.remove('active');
             copyBtn.style.display = 'none';
