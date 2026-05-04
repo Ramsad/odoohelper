@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Odoo Model → Table Name Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e293b;
+            --accent: #0ea5e9;
+            --accent-light: #06b6d4;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --border: #475569;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg) 0%, #1a1f3a 50%, var(--bg) 100%);
+            background-attachment: fixed;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* Animated background elements */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            margin-bottom: 40px;
+            text-align: center;
+            animation: slideUp 0.6s ease-out 0.1s both;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+            animation: slideUp 0.6s ease-out 0.2s both;
+        }
+
+        .label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(51, 65, 85, 0.8);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--surface-light);
+            color: var(--accent);
+            border: 1px solid var(--border);
+            min-width: 100px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: var(--accent);
+        }
+
+        .output-group {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+            animation: slideUp 0.6s ease-out 0.3s both;
+        }
+
+        .output-box {
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            transition: all 0.3s ease;
+        }
+
+        .output-box.active {
+            background: rgba(51, 65, 85, 0.6);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .output-box:hover {
+            border-color: var(--accent);
+        }
+
+        .output-text {
+            color: var(--accent);
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        .status-message {
+            font-size: 12px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            min-height: 20px;
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
+
+        .status-message.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: var(--text-muted);
+            animation: slideUp 0.6s ease-out 0.4s both;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--accent-light);
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 32px 24px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            button {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .output-box {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .copy-btn {
+                margin-left: 0;
+                margin-top: 8px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>Odoo Model Converter</h1>
+                <p>Extract ID & Table Name from URL</p>
+            </div>
+
+            <div class="input-group">
+                <label class="label">Paste Odoo URL (Ctrl+V)</label>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="urlInput" 
+                        placeholder="Paste your Odoo URL here..."
+                        autocomplete="off"
+                    >
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="extractFromUrl()">
+                    <span>🔗</span> Extract & Convert
+                </button>
+                <button class="btn-secondary" onclick="clearUrlTab()">
+                    <span>🗑️</span> Clear
+                </button>
+            </div>
+
+            <div class="output-group">
+                <label class="label">Results</label>
+                
+                <div style="margin-bottom: 16px;">
+                    <label class="label" style="margin-bottom: 6px; color: var(--text-muted); font-size: 11px;">Record ID</label>
+                    <div class="output-box" id="idBox">
+                        <span class="output-text" id="idText">ID will appear here</span>
+                    </div>
+                    <button class="copy-btn" id="copyIdBtn" onclick="copyIdToClipboard()" style="display: none;">
+                        📋 Copy ID
+                    </button>
+                </div>
+
+                <div>
+                    <label class="label" style="margin-bottom: 6px; color: var(--text-muted); font-size: 11px;">Table Name</label>
+                    <div class="output-box" id="outputBox">
+                        <span class="output-text" id="outputText">Table name will appear here</span>
+                    </div>
+                    <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" style="display: none;">
+                        📋 Copy Table Name
+                    </button>
+                </div>
+
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+
+            <div class="footer">
+                <p>📦 Built for Odoo developers | <a href="https://github.com" target="_blank">GitHub</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const idText = document.getElementById('idText');
+        const outputText = document.getElementById('outputText');
+        const idBox = document.getElementById('idBox');
+        const outputBox = document.getElementById('outputBox');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyIdBtn = document.getElementById('copyIdBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Ctrl+V paste support
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'v') {
+                e.preventDefault();
+                handleCtrlVPaste();
+            }
+        });
+
+        async function handleCtrlVPaste() {
+            try {
+                const text = await navigator.clipboard.readText();
+                urlInput.value = text;
+                urlInput.focus();
+                showStatus('URL pasted! Click Extract to convert.', 'success');
+                
+                // Auto-extract if it looks like a URL
+                if (text.includes('model=')) {
+                    setTimeout(extractFromUrl, 500);
+                }
+            } catch (err) {
+                showStatus('Unable to paste. Check clipboard permissions.', 'error');
+            }
+        }
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                extractFromUrl();
+            }
+        });
+
+        function extractFromUrl() {
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                outputText.textContent = 'Result will appear here';
+                outputBox.classList.remove('active');
+                copyBtn.style.display = 'none';
+                clearIdDisplay();
+                return;
+            }
+
+            try {
+                // Extract ID from URL
+                const idMatch = url.match(/[#&]id=(\d+)/);
+                const id = idMatch ? idMatch[1] : null;
+
+                // Extract model from URL
+                const modelMatch = url.match(/[#&]model=([^&#]+)/);
+                const model = modelMatch ? decodeURIComponent(modelMatch[1]) : null;
+
+                if (!model) {
+                    showStatus('Could not find model parameter in URL', 'error');
+                    clearIdDisplay();
+                    outputText.textContent = 'Result will appear here';
+                    outputBox.classList.remove('active');
+                    copyBtn.style.display = 'none';
+                    return;
+                }
+
+                // Display ID if found
+                if (id) {
+                    idText.textContent = id;
+                    idBox.classList.add('active');
+                    copyIdBtn.style.display = 'block';
+                } else {
+                    clearIdDisplay();
+                }
+
+                // Convert model to table name
+                const tableName = model.replace(/\./g, '_');
+                outputText.textContent = tableName;
+                outputBox.classList.add('active');
+                copyBtn.style.display = 'block';
+
+                showStatus('Extracted and converted!', 'success');
+            } catch (error) {
+                showStatus('Error parsing URL. Check the format.', 'error');
+                clearIdDisplay();
+                outputText.textContent = 'Result will appear here';
+                outputBox.classList.remove('active');
+                copyBtn.style.display = 'none';
+            }
+        }
+
+        async function copyToClipboard() {
+            const tableName = outputText.textContent;
+            
+            if (tableName === 'Result will appear here' || tableName === 'Table name will appear here') {
+                showStatus('Nothing to copy!', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(tableName);
+                
+                // Button feedback
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ Copied!';
+                copyBtn.classList.add('copied');
+                
+                showStatus('Table name copied!', 'success');
+
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showStatus('Failed to copy. Please try again.', 'error');
+            }
+        }
+
+        async function copyIdToClipboard() {
+            const id = idText.textContent;
+            
+            if (id === 'ID will appear here') {
+                showStatus('No ID to copy!', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(id);
+                
+                // Button feedback
+                const originalText = copyIdBtn.textContent;
+                copyIdBtn.textContent = '✅ Copied!';
+                copyIdBtn.classList.add('copied');
+                
+                showStatus('ID copied!', 'success');
+
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyIdBtn.textContent = originalText;
+                    copyIdBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showStatus('Failed to copy. Please try again.', 'error');
+            }
+        }
+
+        function clearIdDisplay() {
+            idText.textContent = 'ID will appear here';
+            idBox.classList.remove('active');
+            copyIdBtn.style.display = 'none';
+        }
+
+        function clearUrlTab() {
+            urlInput.value = '';
+            clearIdDisplay();
+            outputText.textContent = 'Result will appear here';
+            outputBox.classList.remove('active');
+            copyBtn.style.display = 'none';
+            statusMessage.classList.remove('show');
+            urlInput.focus();
+        }
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message show ${type}`;
+            
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            urlInput.focus();
+        });
+    </script>
+</body>
+</html>
