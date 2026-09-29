@@ -417,6 +417,16 @@
                     </button>
                 </div>
 
+                <div style="margin-bottom: 16px;">
+                    <label class="label" style="margin-bottom: 6px; color: var(--text-muted); font-size: 11px;">Update Status Query (set to draft)</label>
+                    <div class="output-box" id="updateBox">
+                        <span class="output-text" id="updateText">Update query will appear here</span>
+                    </div>
+                    <button class="copy-btn" id="copyUpdateBtn" onclick="copyUpdateToClipboard()" style="display: none;">
+                        📋 Copy Query
+                    </button>
+                </div>
+
                 <div class="status-message" id="statusMessage"></div>
             </div>
 
@@ -437,6 +447,9 @@
         const copyBtn = document.getElementById('copyBtn');
         const copyIdBtn = document.getElementById('copyIdBtn');
         const copySqlBtn = document.getElementById('copySqlBtn');
+        const updateText = document.getElementById('updateText');
+        const updateBox = document.getElementById('updateBox');
+        const copyUpdateBtn = document.getElementById('copyUpdateBtn');
         const statusMessage = document.getElementById('statusMessage');
 
         // Ctrl+V paste support
@@ -478,6 +491,7 @@
                 copyBtn.style.display = 'none';
                 clearIdDisplay();
                 clearSqlDisplay();
+                clearUpdateDisplay();
                 return;
             }
 
@@ -494,6 +508,7 @@
                     showStatus('Could not find model parameter in URL', 'error');
                     clearIdDisplay();
                     clearSqlDisplay();
+                    clearUpdateDisplay();
                     outputText.textContent = 'Result will appear here';
                     outputBox.classList.remove('active');
                     copyBtn.style.display = 'none';
@@ -518,8 +533,10 @@
                 // Generate SQL query if both ID and table name exist
                 if (id && tableName) {
                     generateSqlQuery(tableName, id);
+                    generateUpdateQuery(tableName, id);
                 } else {
                     clearSqlDisplay();
+                    clearUpdateDisplay();
                 }
 
                 showStatus('Extracted and converted!', 'success');
@@ -527,6 +544,7 @@
                 showStatus('Error parsing URL. Check the format.', 'error');
                 clearIdDisplay();
                 clearSqlDisplay();
+                clearUpdateDisplay();
                 outputText.textContent = 'Result will appear here';
                 outputBox.classList.remove('active');
                 copyBtn.style.display = 'none';
@@ -538,6 +556,13 @@
             sqlText.textContent = query;
             sqlBox.classList.add('active');
             copySqlBtn.style.display = 'block';
+        }
+
+        function generateUpdateQuery(tableName, id) {
+            const query = `UPDATE ${tableName} SET state = 'draft' WHERE id = ${id};`;
+            updateText.textContent = query;
+            updateBox.classList.add('active');
+            copyUpdateBtn.style.display = 'block';
         }
 
         async function copyToClipboard() {
@@ -624,6 +649,34 @@
             }
         }
 
+        async function copyUpdateToClipboard() {
+            const query = updateText.textContent;
+
+            if (query === 'Update query will appear here') {
+                showStatus('No query to copy!', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(query);
+
+                // Button feedback
+                const originalText = copyUpdateBtn.textContent;
+                copyUpdateBtn.textContent = '✅ Copied!';
+                copyUpdateBtn.classList.add('copied');
+
+                showStatus('Update query copied!', 'success');
+
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyUpdateBtn.textContent = originalText;
+                    copyUpdateBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                showStatus('Failed to copy. Please try again.', 'error');
+            }
+        }
+
         function clearIdDisplay() {
             idText.textContent = 'ID will appear here';
             idBox.classList.remove('active');
@@ -636,10 +689,17 @@
             copySqlBtn.style.display = 'none';
         }
 
+        function clearUpdateDisplay() {
+            updateText.textContent = 'Update query will appear here';
+            updateBox.classList.remove('active');
+            copyUpdateBtn.style.display = 'none';
+        }
+
         function clearUrlTab() {
             urlInput.value = '';
             clearIdDisplay();
             clearSqlDisplay();
+            clearUpdateDisplay();
             outputText.textContent = 'Result will appear here';
             outputBox.classList.remove('active');
             copyBtn.style.display = 'none';
